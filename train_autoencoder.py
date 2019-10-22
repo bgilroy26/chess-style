@@ -141,7 +141,7 @@ def recon(game):
     return recon
 
 start_epoch = 1
-resume = True
+resume = False
 if resume:
     state = torch.load('./checkpoints/best_autoencoder.pth.tar', 
                         map_location=lambda storage, loc: storage)
