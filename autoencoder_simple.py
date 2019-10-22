@@ -13,29 +13,22 @@ class AE(nn.Module):
         super(AE, self).__init__()
 
         self.fce1 = nn.Linear(384, 300)
-        self.bne1 = nn.BatchNorm1d(300)
         self.fce2 = nn.Linear(300, 200)
-        self.bne2 = nn.BatchNorm1d(200)
         self.fce3 = nn.Linear(200, 128)
-        self.bne3 = nn.BatchNorm1d(128)
-
         self.fcd2 = nn.Linear(128, 200)
-        self.bnd2 = nn.BatchNorm1d(200)
         self.fcd3 = nn.Linear(200, 300)
-        self.bnd3 = nn.BatchNorm1d(300)
         self.fcd4 = nn.Linear(300, 384)
-        self.bnd4 = nn.BatchNorm1d(384)
 
     def encode(self, x):
-        x = F.leaky_relu(self.bne1(self.fce1(x)))
-        x = F.leaky_relu(self.bne2(self.fce2(x)))
-        x = F.leaky_relu(self.bne3(self.fce3(x)))
+        x = F.leaky_relu(self.fce1(x))
+        x = F.leaky_relu(self.fce2(x))
+        x = F.leaky_relu(self.fce3(x))
         return x
 
     def decode(self, z):
-        z = F.leaky_relu(self.bnd2(self.fcd2(z)))
-        z = F.leaky_relu(self.bnd3(self.fcd3(z)))
-        z = F.sigmoid(self.bnd4(self.fcd4(z)))
+        z = F.leaky_relu(self.fcd2(z))
+        z = F.leaky_relu(self.fcd3(z))
+        z = F.sigmoid(self.fcd4(z))
         return z
 
     def forward(self, x):

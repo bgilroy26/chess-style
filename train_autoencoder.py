@@ -1,4 +1,3 @@
-from __future__ import print_function
 import argparse
 import os
 import torch
@@ -14,12 +13,12 @@ import numpy as np
 from autoencoder_simple import AE
 
 parser = argparse.ArgumentParser(description='Mae Toi learns the game')
-parser.add_argument('--batch-size', type=int, default=128, metavar='N',
-                    help='input batch size for training (default: 128)')
+parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+                    help='input batch size for training (default: 64)')
 parser.add_argument('--lr', type=float, default=1e-2, metavar='N',
                     help='learning rate (default: 1e-2)')
-parser.add_argument('--decay', type=float, default=.90, metavar='N',
-                    help='decay rate of learning rate (default: .95)')
+parser.add_argument('--decay', type=float, default=.9, metavar='N',
+                    help='decay rate of learning rate (default: .9)')
 parser.add_argument('--epochs', type=int, default=10, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
@@ -71,19 +70,19 @@ train_loader = torch.utils.data.DataLoader(TrainSet(), batch_size=batch_size, sh
 test_loader = torch.utils.data.DataLoader(TestSet(), batch_size=batch_size, shuffle=True)
 
 model = AE().to(device)
-for idx, child in enumerate(model.children()):
-    if idx not in (4, 5, 6, 7):
-        for param in child.parameters():
-            param.requires_grad = False
+#for idx, child in enumerate(model.children()):
+#    if idx not in (4, 5, 6, 7):
+#        for param in child.parameters():
+#            param.requires_grad = False
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
 
 def loss_function(recon_x, x):
-    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 384), size_average=True)
+    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 384))
     return BCE
 
 def mse_loss_function(recon_x, x):
-    MSE = F.mse_loss(recon_x, x.view(-1, 384), size_average=True)
+    MSE = F.mse_loss(recon_x, x.view(-1, 384))
     return MSE
 
 def train(epoch):
@@ -141,7 +140,7 @@ def recon(game):
     return recon
 
 start_epoch = 1
-resume = False
+resume = True
 if resume:
     state = torch.load('./checkpoints/best_autoencoder.pth.tar', 
                         map_location=lambda storage, loc: storage)
