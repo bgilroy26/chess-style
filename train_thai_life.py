@@ -1,4 +1,3 @@
-from __future__ import print_function
 import argparse
 import os
 import torch
@@ -10,17 +9,17 @@ from torchvision import datasets, transforms
 from torchvision.utils import save_image
 
 import numpy as np
-from tensorboardX import SummaryWriter
-from models.siamese import Siamese
+from thai_life import ThaiLife
+import sys
 
-parser = argparse.ArgumentParser(description='VAE MNIST Example')
-parser.add_argument('--batch-size', type=int, default=128, metavar='N',
-                    help='input batch size for training (default: 128)')
+parser = argparse.ArgumentParser(description='Mae Toi')
+parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+                    help='input batch size for training (default: 64)')
 parser.add_argument('--lr', type=float, default=.01, metavar='N',
                     help='learning rate (default: .01)')
 parser.add_argument('--decay', type=int, default=.99, metavar='N',
                     help='decay rate of learning rate (default: .99)')
-parser.add_argument('--epochs', type=int, default=10, metavar='N',
+parser.add_argument('--epochs', type=int, default=30, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
@@ -41,94 +40,77 @@ lr = args.lr
 decay = args.decay
 batch_size = args.batch_size
 
-writer = SummaryWriter(comment='lr: {} | decay: {} | batch size: {}'.format(lr, decay, batch_size))
+print('lr: {} | decay: {} | batch size: {}'.format(lr, decay, batch_size))
 
 print('Loading data...')
-games = np.load('./data/features.npy')
-wins = np.load('./data/labels.npy')
+positions1 = np.load('../chessfiles/train.npy')
+positions2 = np.load('../chessfiles/test.npy')
+positions3 = np.vstack((positions1, positions2))
+results = np.load('../chessfiles/labels.npy')
 
-p = np.random.permutation(len(wins))
-games = games[p]
-wins = wins[p]
+p = np.random.permutation(results.shape[0])
+positions = positions3[p]
+results = results[p]
 
-train_games = games[:int(len(games)*.8)]
-train_wins = wins[:int(len(games)*.8)]
-test_games = games[int(len(games)*.8):]
-test_wins = wins[int(len(games)*.8):]
-
-train_games_wins = train_games[train_wins == 1]
-train_games_losses = train_games[train_wins == -1]
-
-test_games_wins = test_games[test_wins == 1]
-test_games_losses = test_games[test_wins == -1]
+four_fifths = int(positions.shape[0]*.8)
+train_positions = positions[:four_fifths]
+train_results = results[:four_fifths]
+test_positions = positions[four_fifths:]
+test_results = results[four_fifths:]
 
 class TrainSet(Dataset):
-    def __init__(self, length):
-        self.length = length
+    def __init__(self):
+        pass
 
     def __getitem__(self, index):
-        rand_win = train_games_wins[
-            np.random.randint(0, train_games_wins.shape[0])]
-        rand_loss = train_games_losses[
-            np.random.randint(0, train_games_losses.shape[0])]
+        rnd_idx = np.random.randint(0, train_positions.shape[0])
+        rand_position = train_positions[rnd_idx]
+        rand_label = np.array(np.argmax(train_results[rnd_idx]))
 
-        #rand_win = train_games_wins[0]
-        #rand_loss = train_games_losses[1234]
-
-        order = np.random.randint(0,2)
-        if order == 0:
-            stacked = np.hstack((rand_win, rand_loss))
-            stacked = torch.from_numpy(stacked).type(torch.FloatTensor)
-            label = torch.from_numpy(np.array([1, 0])).type(torch.FloatTensor)
-            return (stacked, label)
-        else:
-            stacked = np.hstack((rand_loss, rand_win))
-            stacked = torch.from_numpy(stacked).type(torch.FloatTensor)
-            label = torch.from_numpy(np.array([0, 1])).type(torch.FloatTensor)
-            return (stacked, label)
+        stacked = torch.from_numpy(rand_position).type(torch.FloatTensor)
+        label = torch.from_numpy(rand_label).type(torch.LongTensor)
+        return (stacked, label)
 
     def __len__(self):
-        return self.length
+        return train_positions.shape[0]
 
 class TestSet(Dataset):
-    def __init__(self, length):
-        self.length = length
+    def __init__(self):
+        pass
 
     def __getitem__(self, index):
-        rand_win = test_games_wins[np.random.randint(0, test_games_wins.shape[0])]
-        rand_loss = test_games_losses[np.random.randint(0, test_games_losses.shape[0])]
+        rnd_idx = np.random.randint(0, test_positions.shape[0])
+        rand_position = test_positions[rnd_idx]
+        rand_label = np.array(np.argmax(test_results[rnd_idx]))
 
-        order = np.random.randint(0,2)
-        if order == 0:
-            stacked = np.hstack((rand_win, rand_loss))
-            stacked = torch.from_numpy(stacked).type(torch.FloatTensor)
-            label = torch.from_numpy(np.array([1, 0])).type(torch.FloatTensor)
-            return (stacked, label)
-        else:
-            stacked = np.hstack((rand_loss, rand_win))
-            stacked = torch.from_numpy(stacked).type(torch.FloatTensor)
-            label = torch.from_numpy(np.array([0, 1])).type(torch.FloatTensor)
-            return (stacked, label)
+        stacked = torch.from_numpy(rand_position).type(torch.FloatTensor)
+        label = torch.from_numpy(rand_label).type(torch.LongTensor)
+        return (stacked, label)
+
 
     def __len__(self):
-        return self.length
+        return test_positions.shape[0]
 
-train_loader = torch.utils.data.DataLoader(TrainSet(1000000),batch_size=batch_size, shuffle=True)
-test_loader = torch.utils.data.DataLoader(TestSet(100000),batch_size=batch_size, shuffle=True)
+train_loader = torch.utils.data.DataLoader(TrainSet(),batch_size=batch_size, shuffle=True)
+test_loader = torch.utils.data.DataLoader(TestSet(),batch_size=batch_size, shuffle=True)
 
 
 print('Buidling model...')
-model = Siamese().to(device)
+model = ThaiLife().to(device)
+for idx, child in enumerate(model.children()):
+    if idx not in (3, 4, 5, 6):
+        for param in child.parameters():
+            param.requires_grad = False
+
+
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
-e = enumerate(train_loader)
-b, (data, label) = next(e)
 
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(pred, label):
-    BCE = F.binary_cross_entropy(pred, label, size_average=False)
-    return BCE
+    CE = F.cross_entropy(pred, label, reduction='mean')
+    return CE
 
 
 def train(epoch):
@@ -151,7 +133,6 @@ def train(epoch):
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader),
                 loss.item() / len(data)))
-            writer.add_scalar('data/train_loss', loss.item() / len(data), epoch*len(train_loader) + batch_idx)
 
     print('====> Epoch: {} Average loss: {:.4f}'.format(
           epoch, train_loss / len(train_loader.dataset)))
@@ -172,26 +153,31 @@ def test(epoch):
             data = data.to(device)
             label = label.to(device)
             pred = model(data)
-            test_loss += loss_function(pred, label).item()
+            test_loss += loss_function(pred, label).mean().item()
 
     test_loss /= len(test_loader.dataset)
     print('====> Test set loss: {:.4f}'.format(test_loss))
-    writer.add_scalar('data/test_loss', test_loss, epoch)
 
 def save(epoch):
     state = {'state_dict': model.state_dict(),
              'optimizer': optimizer.state_dict(),
              'epoch': epoch + 1}
-    save_dir = 'checkpoints/siamese/lr_{}_decay_{}'.format(int(lr*1000), int(decay*100))
+    save_dir = 'checkpoints/thai_life/lr_{}_decay_{}'.format(int(lr*1000), int(decay*100))
     if not os.path.isdir(save_dir):
-        os.mkdir(save_dir)
-    torch.save(state, os.path.join(save_dir, 'ae_{}.pth.tar'.format(epoch)))
+        os.makedirs(save_dir)
+    torch.save(state, os.path.join(save_dir, 'evaluator_{}_epoch.pth.tar'.format(epoch)))
+    torch.save(state, './checkpoints/best_evaluator.pth.tar')
 
 start_epoch = 1
 resume = True
 if resume:
-    state = torch.load('./checkpoints/best_siamese.pth.tar', map_location=lambda storage, loc: storage)
+    state = torch.load('./checkpoints/best_evaluator.pth.tar', map_location=lambda storage, loc: storage)
     model.load_state_dict(state['state_dict'])
+    for idx, child in enumerate(model.children()):
+        if idx not in (3, 4, 5, 6):
+            for param in child.parameters():
+                param.requires_grad = False
+
     optimizer.load_state_dict(state['optimizer'])
     start_epoch = state['epoch']
 

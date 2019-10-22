@@ -8,24 +8,31 @@ class ThaiLife(nn.Module):
     def __init__(self):
         super(ThaiLife, self).__init__()
 
-        self.fc1 = nn.Linear(50, 400)
-        self.bn1 = nn.BatchNorm1d(400)
-        self.fc2 = nn.Linear(400, 200)
-        self.bn2 = nn.BatchNorm1d(200)
-        self.fc3 = nn.Linear(200, 100)
-        self.bn3 = nn.BatchNorm1d(100)
-        self.fc4 = nn.Linear(100, 3)
-        self.bn4 = nn.BatchNorm1d(3)
-        
+        self.fce1 = nn.Linear(384, 300)
+        self.fce2 = nn.Linear(300, 200)
+        self.fce3 = nn.Linear(200, 128)
+
+        self.fc1 = nn.Linear(128, 512)
+        self.fc2 = nn.Linear(512, 256)
+        self.fc3 = nn.Linear(256, 128)
+        self.fc4 = nn.Linear(128, 3)
+
+    def encode(self, x):
+        x = F.leaky_relu(self.fce1(x))
+        x = F.leaky_relu(self.fce2(x))
+        x = F.leaky_relu(self.fce3(x))
+        return x
+       
     def forward(self, x):
-        x = F.leaky_relu(self.bn1(self.fc1(x)))
-        x = F.leaky_relu(self.bn2(self.fc2(x)))
-        x = F.leaky_relu(self.bn3(self.fc3(x)))
-        x = self.bn4(self.fc4(x))
-        return F.sigmoid(x)
+        enc = self.encode(x.view(-1, 384))
+        x = F.leaky_relu(self.fc1(enc))
+        x = F.leaky_relu(self.fc2(x))
+        x = F.leaky_relu(self.fc3(x))
+        x = self.fc4(x)
+        return x
 
 
 def loss_function(recon_x, x):
-    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 3), size_average=False)
-    return BCE
+    CE = F.cross_entropy(recon_x, x.view(-1, 3), size_average=False)
+    return CE
 
