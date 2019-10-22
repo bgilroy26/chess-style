@@ -15,8 +15,8 @@ from autoencoder_simple import AE
 parser = argparse.ArgumentParser(description='Mae Toi learns the game')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
-parser.add_argument('--lr', type=float, default=1e-2, metavar='N',
-                    help='learning rate (default: 1e-2)')
+parser.add_argument('--lr', type=float, default=1e-3, metavar='N',
+                    help='learning rate (default: 1e-3)')
 parser.add_argument('--decay', type=float, default=.9, metavar='N',
                     help='decay rate of learning rate (default: .9)')
 parser.add_argument('--epochs', type=int, default=10, metavar='N',
@@ -132,7 +132,7 @@ def save(epoch):
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
     torch.save(state, os.path.join(save_dir, 'ae_{}.pth.tar'.format(epoch)))
-    torch.save(state, os.path.join('checkpoints/', 'best_autoencoder.pth.tar'.format(epoch)))
+    torch.save(state, 'checkpoints/best_autoencoder.pth.tar')
 
 def recon(game):
     recon, _ = model(torch.from_numpy(game).type(torch.FloatTensor))
@@ -140,7 +140,7 @@ def recon(game):
     return recon
 
 start_epoch = 1
-resume = True
+resume = False
 if resume:
     state = torch.load('./checkpoints/best_autoencoder.pth.tar', 
                         map_location=lambda storage, loc: storage)
