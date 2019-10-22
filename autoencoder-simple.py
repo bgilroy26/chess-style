@@ -16,14 +16,10 @@ class AE(nn.Module):
         self.bne1 = nn.BatchNorm1d(300)
         self.fce2 = nn.Linear(300, 200)
         self.bne2 = nn.BatchNorm1d(200)
-        self.fce3 = nn.Linear(200, 100)
-        self.bne3 = nn.BatchNorm1d(100)
-        self.fce4 = nn.Linear(100, 50)
-        self.bne4 = nn.BatchNorm1d(50)
+        self.fce3 = nn.Linear(200, 128)
+        self.bne3 = nn.BatchNorm1d(128)
 
-        self.fcd1 = nn.Linear(50, 100)
-        self.bnd1 = nn.BatchNorm1d(100)
-        self.fcd2 = nn.Linear(100, 200)
+        self.fcd2 = nn.Linear(128, 200)
         self.bnd2 = nn.BatchNorm1d(200)
         self.fcd3 = nn.Linear(200, 300)
         self.bnd3 = nn.BatchNorm1d(300)
@@ -34,11 +30,9 @@ class AE(nn.Module):
         x = F.leaky_relu(self.bne1(self.fce1(x)))
         x = F.leaky_relu(self.bne2(self.fce2(x)))
         x = F.leaky_relu(self.bne3(self.fce3(x)))
-        x = F.leaky_relu(self.bne4(self.fce4(x)))
         return x
 
     def decode(self, z):
-        z = F.leaky_relu(self.bnd1(self.fcd1(z)))
         z = F.leaky_relu(self.bnd2(self.fcd2(z)))
         z = F.leaky_relu(self.bnd3(self.fcd3(z)))
         z = F.sigmoid(self.bnd4(self.fcd4(z)))

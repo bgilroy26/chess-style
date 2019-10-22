@@ -10,9 +10,8 @@ from torchvision import datasets, transforms
 from torchvision.utils import save_image
 
 import numpy as np
-from tensorboardX import SummaryWriter
 
-from models.autoencoder import AE
+from autoencoder-simple import AE
 
 parser = argparse.ArgumentParser(description='Mae Toi learns the game')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
@@ -42,33 +41,31 @@ lr = args.lr
 decay = args.decay
 batch_size=args.batch_size
 
-writer = SummaryWriter(comment='lr: {} | decay: {} | batch size: {}'.format(lr, decay, batch_size))
+print('lr: {} | decay: {} | batch size: {}'.format(lr, decay, batch_size))
 
-positions = 
 
-np.random.shuffle(positions)
-train_positions = np.load('data/train.npy')
-test_positions = np.load('data/test.npy')
+train_positions = np.load('../chessfiles/train.npy')
+test_positions = np.load('../chessfiles/test.npy')
 
 class TrainSet(Dataset):
     def __init__(self):
         pass
 
     def __getitem__(self, index):
-        return (torch.from_numpy(train_games[index]).type(torch.FloatTensor), 1)
+        return (torch.from_numpy(train_positions[index]).type(torch.FloatTensor), 1)
 
     def __len__(self):
-        return train_games.shape[0]
+        return train_positions.shape[0]
 
 class TestSet(Dataset):
     def __init__(self):
         pass
 
     def __getitem__(self, index):
-        return (torch.from_numpy(test_games[index]).type(torch.FloatTensor), 1)
+        return (torch.from_numpy(test_positions[index]).type(torch.FloatTensor), 1)
 
     def __len__(self):
-        return test_games.shape[0]
+        return test_positions.shape[0]
 
 train_loader = torch.utils.data.DataLoader(TrainSet(), batch_size=batch_size, shuffle=True)
 test_loader = torch.utils.data.DataLoader(TestSet(), batch_size=batch_size, shuffle=True)
@@ -101,7 +98,6 @@ def train(epoch):
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader),
                 loss.item() / len(data)))
-            writer.add_scalar('data/train_loss', loss.item() / len(data), epoch*len(train_loader) + batch_idx)
 
     print('====> Epoch: {} Average loss: {:.4f}'.format(
           epoch, train_loss / len(train_loader.dataset)))
@@ -119,17 +115,11 @@ def test(epoch):
             pred = (recon_batch.cpu().detach().numpy() > .5).astype(int)
             total_diff += float(np.sum(data.cpu().detach().numpy() != pred))
             test_loss += loss_function(recon_batch, data).item()
-            test_loss_mse += mse_loss_function(recon_batch, data).item()
 
     test_loss /= len(test_loader.dataset)
-    test_loss_mse /= len(test_loader.dataset)
     total_diff /= len(test_loader.dataset)
     print('====> Test set loss: {:.4f}'.format(test_loss))
-    print('====> Test set loss (mse): {:.4f}'.format(test_loss_mse))
     print('====> Test set diff: {:.4f}'.format(total_diff))
-    writer.add_scalar('data/test_loss', test_loss, epoch)
-    writer.add_scalar('data/test_loss_mse', test_loss_mse, epoch)
-    writer.add_scalar('data/test_diff', total_diff, epoch)
 
 def save(epoch):
     state = {'state_dict': model.state_dict(),
@@ -137,8 +127,9 @@ def save(epoch):
              'epoch': epoch + 1}
     save_dir = 'checkpoints/autoencoder/lr_{}_decay_{}'.format(int(lr*1000), int(decay*100))
     if not os.path.isdir(save_dir):
-        os.mkdir(save_dir)
+        os.makedirs(save_dir)
     torch.save(state, os.path.join(save_dir, 'ae_{}.pth.tar'.format(epoch)))
+    torch.save(state, os.path.join('checkpoints/', 'best_autoencoder.pth.tar'.format(epoch)))
 
 def recon(game):
     recon, _ = model(torch.from_numpy(game).type(torch.FloatTensor))
@@ -158,6 +149,7 @@ for epoch in range(start_epoch, args.epochs + 1):
     train(epoch)
     test(epoch)
     save(epoch)
+    resume = True
 
     # Adjust learning rate
     for params in optimizer.param_groups:
