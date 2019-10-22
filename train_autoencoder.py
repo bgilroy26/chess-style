@@ -11,14 +11,14 @@ from torchvision.utils import save_image
 
 import numpy as np
 
-from autoencoder-simple import AE
+from autoencoder_simple import AE
 
 parser = argparse.ArgumentParser(description='Mae Toi learns the game')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                     help='input batch size for training (default: 128)')
-parser.add_argument('--lr', type=float, default=5e-3, metavar='N',
-                    help='learning rate (default: 5e-3)')
-parser.add_argument('--decay', type=float, default=.95, metavar='N',
+parser.add_argument('--lr', type=float, default=1e-2, metavar='N',
+                    help='learning rate (default: 1e-2)')
+parser.add_argument('--decay', type=float, default=.90, metavar='N',
                     help='decay rate of learning rate (default: .95)')
 parser.add_argument('--epochs', type=int, default=10, metavar='N',
                     help='number of epochs to train (default: 10)')
@@ -71,15 +71,19 @@ train_loader = torch.utils.data.DataLoader(TrainSet(), batch_size=batch_size, sh
 test_loader = torch.utils.data.DataLoader(TestSet(), batch_size=batch_size, shuffle=True)
 
 model = AE().to(device)
+for idx, child in enumerate(model.children()):
+    if idx not in (4, 5, 6, 7):
+        for param in child.parameters():
+            param.requires_grad = False
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
 
 def loss_function(recon_x, x):
-    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 384), size_average=False)
+    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 384), size_average=True)
     return BCE
 
 def mse_loss_function(recon_x, x):
-    MSE = F.mse_loss(recon_x, x.view(-1, 384), size_average=False)
+    MSE = F.mse_loss(recon_x, x.view(-1, 384), size_average=True)
     return MSE
 
 def train(epoch):
