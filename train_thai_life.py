@@ -20,7 +20,7 @@ parser.add_argument('--lr', type=float, default=.01, metavar='N',
 parser.add_argument('--decay', type=int, default=.99, metavar='N',
                     help='decay rate of learning rate (default: .99)')
 parser.add_argument('--epochs', type=int, default=30, metavar='N',
-                    help='number of epochs to train (default: 10)')
+                    help='number of epochs to train (default: 30)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -95,7 +95,7 @@ train_loader = torch.utils.data.DataLoader(TrainSet(),batch_size=batch_size, shu
 test_loader = torch.utils.data.DataLoader(TestSet(),batch_size=batch_size, shuffle=True)
 
 
-print('Buidling model...')
+print('Building model...')
 model = ThaiLife().to(device)
 for idx, child in enumerate(model.children()):
     if idx not in (3, 4, 5, 6):
@@ -165,29 +165,26 @@ def save(epoch):
     save_dir = 'checkpoints/thai_life/lr_{}_decay_{}'.format(int(lr*1000), int(decay*100))
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
-    torch.save(state, os.path.join(save_dir, 'evaluator_{}_epoch.pth.tar'.format(epoch)))
+    #torch.save(state, os.path.join(save_dir, 'evaluator_{}_epoch.pth.tar'.format(epoch)))
     torch.save(state, './checkpoints/best_evaluator.pth.tar')
 
-start_epoch = 1
 resume = True
 if resume:
     state = torch.load('./checkpoints/best_evaluator.pth.tar', map_location=lambda storage, loc: storage)
     model.load_state_dict(state['state_dict'])
-    for idx, child in enumerate(model.children()):
-        if idx not in (3, 4, 5, 6):
-            for param in child.parameters():
-                param.requires_grad = False
+    #for idx, child in enumerate(model.children()):
+    #    if idx not in (3, 4, 5, 6):
+    #        for param in child.parameters():
+    #            param.requires_grad = False
 
     optimizer.load_state_dict(state['optimizer'])
     start_epoch = state['epoch']
 
 print('Begin train...')
-for epoch in range(start_epoch, args.epochs + 1):
-    train(epoch)
-    test(epoch)
-    save(epoch)
+for i in range(start_epoch, start_epoch+args.epochs+1):
+    train(i)
+    test(i)
+    save(i)
 
-    # Adjust learning rate
     for param_group in optimizer.param_groups:
         param_group['lr'] = param_group['lr'] * decay
-
