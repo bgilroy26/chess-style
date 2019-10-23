@@ -13,7 +13,7 @@ def batchtotensor(inputbatch):
                     pieces_str[10]:-5, pieces_str[11]:-6}
 
     maxnum = len(inputbatch)
-    boardtensor = np.zeros((maxnum, 8, 8,7))
+    boardtensor = np.zeros((maxnum, 8, 8,6))
     
     for num, inputstr in enumerate(inputbatch):
         inputliste = inputstr.split()
@@ -31,14 +31,6 @@ def batchtotensor(inputbatch):
             else:
                 raise ValueError("invalid fenstr at index: {} char: {}".format(i, c))
         
-        if inputliste[1] == "w":
-            for i in range(8):
-                for j in range(8):
-                    boardtensor[num, i, j, 6] = 1
-        else:
-            for i in range(8):
-                for j in range(8):
-                    boardtensor[num, i, j, 6] = -1
   
     return boardtensor
 
