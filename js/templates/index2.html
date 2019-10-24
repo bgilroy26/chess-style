@@ -20,14 +20,22 @@
 <script>
 function onDrop(source, target, piece, newPos, oldPos, orientation) {
     console.log(Chessboard.objToFen(newPos));
+    fetch('http://localhost:8000/?fen='+Chessboard.objToFen(newPos)).then(
+        response => response.text() )
+        .then( position_fen  => {
+            board.position(position_fen);
+        }
+    )
+
 }
 var config = {
-  draggable: true,
-  position: 'start',
-  onDrop: onDrop,
-  orientation: 'black',
-}
-var board = Chessboard('myBoard',config)
+      draggable: true,
+      position: 'start',
+      onDrop: onDrop,
+      orientation: 'black',
+    }
+var board = Chessboard('myBoard',config);
+
 </script>
 </body>
 </html>

@@ -1,9 +1,23 @@
+import random
 import pprint
 import chess
 import sys
 import evaluate_position
 
 def execute(fen):
+    #hardcode openings
+    openings = ['rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR',\
+            'rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR',\
+            'rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R',\
+            'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR']
+    if ' ' in fen: 
+        if fen.split()[0] == 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR':
+            return openings[random.randint(0,3)]
+    else:
+        if fen == 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR':
+            return openings[random.randint(0,3)]
+
+           
     board = chess.Board(fen=fen)
 
     player_moves_and_scores = []
