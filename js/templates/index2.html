@@ -1,0 +1,33 @@
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <title>chessboardjs Example #1000 - Empty Board</title>
+  <base href="../" />
+  <link rel="stylesheet" href="css/chessboard-1.0.0.min.css">
+</head>
+<body>
+<p>Chessboard.js initializes to an empty board with no second argument.</p>
+
+<!--- Begin Example HTML ------------------------------------------------------>
+<div id="myBoard" style="width: 400px"></div>
+<!--- End Example HTML -------------------------------------------------------->
+
+<script src="jquery-3.4.1.min.js"></script>
+<script src="js/chessboard-1.0.0.min.js"></script>
+<script>
+function onDrop(source, target, piece, newPos, oldPos, orientation) {
+    console.log(Chessboard.objToFen(newPos));
+}
+var config = {
+  draggable: true,
+  position: 'start',
+  onDrop: onDrop,
+  orientation: 'black',
+}
+var board = Chessboard('myBoard',config)
+</script>
+</body>
+</html>
