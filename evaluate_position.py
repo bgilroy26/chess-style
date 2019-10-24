@@ -1,10 +1,8 @@
 import chess
-import generate_protectors
 import thai_life
 import fen2vec4
 import sys
 import numpy as np
-import pandas as pd
 import torch
 
 #bring in model
@@ -15,6 +13,8 @@ model.eval()
 
 #determine MaeToi scores for position
 def get_MaeToi(fen):
+    if ' ' in fen:
+        fen = fen.split()[0]
     np_input_vector = fen2vec4.batchtotensor(fen)
     pytorch_input_vector = torch.from_numpy(np_input_vector).type(torch.FloatTensor)
     model_output = model(pytorch_input_vector).detach().numpy()[0]
