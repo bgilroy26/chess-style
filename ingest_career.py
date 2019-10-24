@@ -13,7 +13,7 @@ model = thai_life.ThaiLife()
 model.load_state_dict(state['state_dict'])
 model.eval()
 
-with open(sys.argv[1]) as f:
+with open(sys.argv[1], encoding='latin-1') as f:
     lines = f.readlines()
 player_first = sys.argv[2]
 player_last = sys.argv[3]
@@ -131,4 +131,4 @@ for idx, line in enumerate(lines):
 
 #write results to csv
 pos_df = pd.DataFrame(player_positions)
-pos_df.to_csv('botvinnik_df.csv', index=False)
+pos_df.to_csv(player_last + '_df.csv', index=False)
