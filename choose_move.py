@@ -2,7 +2,90 @@ import random
 import pprint
 import chess
 import sys
+import collections
 import evaluate_position
+
+PlayerMove = collections.namedtuple('PlayerMove', ['position', 'score'])
+OpponentMove = collections.namedtuple('OpponentMove', ['position', 'score'])
+ChessLeaf = collections.namedtuple('ChessLeaf', ['position', 'tally'])
+
+class ChessTree:
+    def __init__(self, move_and_score):
+        self.data = move_and_score
+        self.children = []
+    
+    def add_branch(self, original_move_and_score, tree):
+        if original_move_and_score == self.data:
+            self.children.append(tree)
+        else:
+            for child in self.children:
+                child.add_branch(original_move_and_score, tree)
+
+    def trim(self):
+        self.children = sorted(self.children, key=lambda x: x.data.score, reverse=True)[:4]
+
+    def add_leaf(self, leaf):
+        self.children = leaf
+        
+    def get_top_move(self):
+        moves = []
+        for move in self.children:
+            moves.append((move.position, move.get_move_score()))
+        final_move = sorted(moves, key=lambda x: x[1], reverse=True)[0] 
+        return final_move[0]
+
+    def get_move_score(self):
+        positions = []
+        negative = False
+        if isinstance(self.children[0].data, OpponentMove):
+            negative = True
+        for child in self.children:
+            if not isinstance(child, ChessLeaf):
+                positions.append(child.position)
+                self.get_top_move()
+
+class PrincipalVariation:
+    def __init__(self, color, fen):
+        self.board = chess.Board(fen=fen)
+        self.color = color
+        self.turn = color
+        self.tree = ChessTree()
+    
+    def update_fen(self, fen):
+        self.board = chess.Board(fen=fen)
+
+    def generate(self, depth):
+        # an even numbered depth will always end on opponent's move
+        for x in range(depth):
+            for child in self.tree.children:
+                self.board.push(child.position)
+                parent_position  = board.fen().split()[0]
+                for move in self.board.legal_moves:
+                    self.board.push(move)
+                    new_pos = board.fen().split()[0]
+                    self.board.pop()
+                    parent_position = self.board.fen()
+                    if self.color == 0:
+                        if self.turn == color:
+                            white_win = evaluate_position.get_MaeToi(new_pos)[0]
+                            self.tree.add_branch(parent_position, PlayerMove(new_pos, white_win))
+                        else:
+                            black_win = evaluate_position.get_MaeToi(new_pos)[2]
+                            self.tree.add_branch(parent_position, OpponentMove(new_pos, black_win))
+                    else:
+                        if self.turn == color:
+                            black_win = evaluate_position.get_MaeToi(new_pos)[2]
+                            self.tree.add_branch(parent_position, PlayerMove(new_pos, black_win))
+                        else:
+                            white_win = evaluate_position.get_MaeToi(new_pos)[0]
+                            self.tree.add_branch(parent_position, OpponentMove(new_pos, white_win))
+                self.tree.trim() 
+                self.board.pop()
+
+                
+
+    def evaluate(self):
+        return self.tree.get_top_move()
 
 def execute(fen):
     #hardcode openings
@@ -26,9 +109,9 @@ def execute(fen):
         new_pos = board.fen().split()[0]
         board.pop()
         white_win = evaluate_position.get_MaeToi(new_pos)[0]
-        player_moves_and_scores.append((new_pos, white_win))
+        player_moves_and_scores.append(PlayerMove(new_pos, white_win))
 
-    player_moves_and_scores_top_4 = sorted(player_moves_and_scores, key=lambda x: x[1], reverse=True)[:4]
+    player_moves_and_scores_top_4 = sorted(player_moves_and_scores, key=lambda x: x.score, reverse=True)[:4]
 
     #add room for the opponent's replies
     player_moves_and_scores_top_4 = [[move_and_score, []] for move_and_score in player_moves_and_scores_top_4]
@@ -39,9 +122,9 @@ def execute(fen):
             new_pos = new_board.fen().split()[0]
             new_board.pop()
             black_win = evaluate_position.get_MaeToi(new_pos)[2]
-            player_moves_and_scores_top_4[idx][1].append((new_pos, black_win))
+            player_moves_and_scores_top_4[idx][1].append(OpponentMove(new_pos, black_win))
     for idx in range(4):
-        player_moves_and_scores_top_4[idx][1] = sorted(player_moves_and_scores_top_4[idx][1], key=lambda x: x[1], reverse=True)[:4]
+        player_moves_and_scores_top_4[idx][1] = sorted(player_moves_and_scores_top_4[idx][1], key=lambda x: x.score, reverse=True)[:4]
     opponents_moves_and_scores_top_16 = player_moves_and_scores_top_4   
 
     for idx in range(4):
@@ -50,24 +133,28 @@ def execute(fen):
 
     for idx in range(4):
         for idy in range(4):
-            new_board = chess.Board(fen=opponents_moves_and_scores_top_16[idx][1][idy][0][0])
+            new_board = chess.Board(fen=opponents_moves_and_scores_top_16[idx][1][idy][0].position)
             for third_move in new_board.legal_moves:
                 new_board.push(third_move)
                 new_pos = new_board.fen().split()[0]
                 new_board.pop()
                 white_win = evaluate_position.get_MaeToi(new_pos)[0]
-                opponents_moves_and_scores_top_16[idx][1][idy][1].append((new_pos, white_win))
+                opponents_moves_and_scores_top_16[idx][1][idy][1].append(PlayerMove(new_pos, white_win))
 
     for idx in range(4):
         for idy in range(4):
-            opponents_moves_and_scores_top_16[idx][1][idy][1] = sorted(opponents_moves_and_scores_top_16[idx][1][idy][1], key=lambda x: x[1], reverse=True)[0]
+            opponents_moves_and_scores_top_16[idx][1][idy][1] = sorted(opponents_moves_and_scores_top_16[idx][1][idy][1], key=lambda x: x.score, reverse=True)[0]
 
     player_moves_top_16 = opponents_moves_and_scores_top_16
 
     final_moves = []
     for idx in range(4):
         for idy in range(4):
-            final_moves.append((player_moves_top_16[idx][0][0], player_moves_top_16[idx][0][1] - player_moves_top_16[idx][1][idy][0][1] + player_moves_top_16[idx][1][idy][1][1]))
+            final_moves.append(PlayerMove(player_moves_top_16[idx][0].position, player_moves_top_16[idx][0].score - player_moves_top_16[idx][1][idy][0].score + player_moves_top_16[idx][1][idy][1].score))
 
     final_move = sorted(final_moves, key=lambda x:x[1], reverse=True)[0]
-    return final_move[0]
+    return final_move.position
+
+if __name__ == '__main__':
+    fen = sys.argv[1]
+    print(execute(fen))
