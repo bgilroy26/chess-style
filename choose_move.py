@@ -14,23 +14,28 @@ class ChessTree:
         self.data = move_and_score
         self.children = []
     
-    def add_branch(self, original_move_and_score, tree):
-        if original_move_and_score == self.data:
-            self.children.append(tree)
+    def add_branch(self, original_move_and_score, move_and_score):
+        if original_move_and_score == self.data.position:
+            self.children.append(ChessTree(move_and_score))
         else:
             for child in self.children:
-                child.add_branch(original_move_and_score, tree)
+                child.add_branch(original_move_and_score, move_and_score)
 
     def trim(self):
         self.children = sorted(self.children, key=lambda x: x.data.score, reverse=True)[:4]
 
     def add_leaf(self, leaf):
-        self.children = leaf
+        parent = self.children
+        generation = self.children
+        while len(generation) != 0:
+            parent = generation
+            generation = generation.children 
+        generation.children = leaf
         
     def get_top_move(self):
         moves = []
         for move in self.children:
-            moves.append((move.position, move.get_move_score()))
+            moves.append((move.data.position, move.get_move_score()))
         final_move = sorted(moves, key=lambda x: x[1], reverse=True)[0] 
         return final_move[0]
 
@@ -42,50 +47,77 @@ class ChessTree:
         for child in self.children:
             if not isinstance(child, ChessLeaf):
                 positions.append(child.position)
-                self.get_top_move()
+        return sum([position.data.score for postion in positions])
+        
 
 class PrincipalVariation:
     def __init__(self, color, fen):
         self.board = chess.Board(fen=fen)
         self.color = color
         self.turn = color
-        self.tree = ChessTree()
+        self.tree = ChessTree(OpponentMove(fen, 0))
     
     def update_fen(self, fen):
         self.board = chess.Board(fen=fen)
 
     def generate(self, depth):
         # an even numbered depth will always end on opponent's move
-        for x in range(depth):
-            for child in self.tree.children:
-                self.board.push(child.position)
-                parent_position  = board.fen().split()[0]
+        # seed tree.children with first replies
+        for idx, x in enumerate(range(depth)):
+            if idx == depth:
+                for move self.board.legal_moves:
+                    self.board.push(move)
+                    new_pos = self.board.fen().split()[0]
+                    self.board.pop()
+                    if self.color == 0:
+                        white_win = evaluate_position.get_MaeToi(new_pos)[0]
+                        self.tree.add_leaf(ChessLeaf(new_pos, white_win))
+                    else:
+                        black_win = evaluate_position.get_MaeToi(new_pos)[2]
+                        self.tree.add_leaf(ChessLeaf(new_pos, black_win))
+            else:
+                parent_position = self.board.fen().split()[0]
                 for move in self.board.legal_moves:
                     self.board.push(move)
-                    new_pos = board.fen().split()[0]
+                    new_pos = self.board.fen().split()[0]
                     self.board.pop()
-                    parent_position = self.board.fen()
                     if self.color == 0:
-                        if self.turn == color:
+                        if self.turn == self.color:
                             white_win = evaluate_position.get_MaeToi(new_pos)[0]
                             self.tree.add_branch(parent_position, PlayerMove(new_pos, white_win))
                         else:
                             black_win = evaluate_position.get_MaeToi(new_pos)[2]
                             self.tree.add_branch(parent_position, OpponentMove(new_pos, black_win))
                     else:
-                        if self.turn == color:
+                        if self.turn == self.color:
                             black_win = evaluate_position.get_MaeToi(new_pos)[2]
                             self.tree.add_branch(parent_position, PlayerMove(new_pos, black_win))
                         else:
                             white_win = evaluate_position.get_MaeToi(new_pos)[0]
                             self.tree.add_branch(parent_position, OpponentMove(new_pos, white_win))
                 self.tree.trim() 
-                self.board.pop()
 
-                
-
+        
     def evaluate(self):
         return self.tree.get_top_move()
+
+def run(fen):
+    #hardcode openings
+    openings = ['rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR',\
+            'rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR',\
+            'rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R',\
+            'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR']
+    if ' ' in fen: 
+        if fen.split()[0] == 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR':
+            return openings[random.randint(0,3)]
+    else:
+        if fen == 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR':
+            return openings[random.randint(0,3)]
+    
+    pv = PrincipalVariation(0, fen)
+    pv.generate(1)
+    print(f'children: {pv.tree.children}')
+    return pv.evaluate()
 
 def execute(fen):
     #hardcode openings
@@ -157,4 +189,4 @@ def execute(fen):
 
 if __name__ == '__main__':
     fen = sys.argv[1]
-    print(execute(fen))
+    print(run(fen))
