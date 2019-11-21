@@ -1,5 +1,6 @@
 import random
 import pprint
+import pptree
 import chess
 import sys
 import collections
@@ -22,16 +23,24 @@ class ChessTree:
                 child.add_branch(original_move_and_score, move_and_score)
 
     def trim(self):
-        self.children = sorted(self.children, key=lambda x: x.data.score, reverse=True)[:4]
+        if self.children == []:
+            return
+        if len(self.children) > 4:
+            self.children = sorted(self.children, key=lambda x: x.data.score, reverse=True)[:4]
+        else:
+            for child in self.children:
+                child.trim()
 
-    def add_leaf(self, leaf):
-        parent = self.children
-        generation = self.children
-        while len(generation) != 0:
-            parent = generation
-            generation = generation.children 
-        generation.children = leaf
-        
+    def add_leaf(self, parent_position, leaf):
+        if self.children == []:
+            self.children = leaf
+        elif isinstance(self.children, ChessLeaf):
+            return
+        else:
+            for child in self.children:
+                if child.data.position == parent_position:
+                    child.add_leaf(parent_position, leaf)
+                    
     def get_top_move(self):
         moves = []
         for move in self.children:
@@ -42,13 +51,18 @@ class ChessTree:
     def get_move_score(self):
         positions = []
         negative = False
-        if isinstance(self.children[0].data, OpponentMove):
-            negative = True
+        if len(self.children) > 0:
+            if isinstance(self.children[0].data, OpponentMove):
+                negative = True
         for child in self.children:
-            if not isinstance(child, ChessLeaf):
+            if isinstance(child, ChessLeaf):
                 positions.append(child.position)
-        return sum([position.data.score for postion in positions])
+                break
         
+        return sum([position.data.score for position in positions])
+        
+    def __str__(self):
+        return f"{self.data.position} {self.data.score}"
 
 class PrincipalVariation:
     def __init__(self, color, fen):
@@ -64,17 +78,19 @@ class PrincipalVariation:
         # an even numbered depth will always end on opponent's move
         # seed tree.children with first replies
         for idx, x in enumerate(range(depth)):
-            if idx == depth:
-                for move self.board.legal_moves:
+            if idx == depth-1:
+                for move in self.board.legal_moves:
+                    parent_position = self.board.fen()
                     self.board.push(move)
                     new_pos = self.board.fen().split()[0]
                     self.board.pop()
                     if self.color == 0:
                         white_win = evaluate_position.get_MaeToi(new_pos)[0]
-                        self.tree.add_leaf(ChessLeaf(new_pos, white_win))
+                        self.tree.add_leaf(parent_position, ChessLeaf(new_pos, white_win))
                     else:
                         black_win = evaluate_position.get_MaeToi(new_pos)[2]
-                        self.tree.add_leaf(ChessLeaf(new_pos, black_win))
+                        self.tree.add_leaf(parent_position, ChessLeaf(new_pos, black_win))
+
             else:
                 parent_position = self.board.fen().split()[0]
                 for move in self.board.legal_moves:
@@ -96,6 +112,8 @@ class PrincipalVariation:
                             white_win = evaluate_position.get_MaeToi(new_pos)[0]
                             self.tree.add_branch(parent_position, OpponentMove(new_pos, white_win))
                 self.tree.trim() 
+                self.turn += 1
+                self.turn = self.turn % 2
 
         
     def evaluate(self):
@@ -115,9 +133,16 @@ def run(fen):
             return openings[random.randint(0,3)]
     
     pv = PrincipalVariation(0, fen)
-    pv.generate(1)
-    print(f'children: {pv.tree.children}')
-    return pv.evaluate()
+    pv.generate(3)
+    def print_chess_tree(tree):
+        try:
+            if tree.children:
+                print(f"{tree.children} {print_chess_tree(tree.children)}")
+        except AttributeError:
+            print(tree)
+        print(tree)
+    #return pv.evaluate()
+    print_chess_tree(pv.tree)
 
 def execute(fen):
     #hardcode openings
