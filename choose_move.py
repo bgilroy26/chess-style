@@ -140,7 +140,6 @@ def run(fen):
                 print(f"{tree.children} {print_chess_tree(tree.children)}")
         except AttributeError:
             print(tree)
-        print(tree)
     #return pv.evaluate()
     print_chess_tree(pv.tree)
 
